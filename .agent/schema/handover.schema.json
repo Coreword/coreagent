@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coreagent.local/agent/schema/handover.schema.json",
+  "title": "Handover envelope",
+  "description": "Signed, chained record of one agent passing a session to the next. The signature covers canonical-json(envelope minus .signature).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "handover_id", "from_agent", "to_agent", "created_at", "reason",
+    "session_ref", "state_sha256", "prev_handover_hash", "environment_fingerprint", "dek"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "handover_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}Z-[0-9a-f]{4}-to-[0-9a-f]{4}$"
+    },
+    "from_agent": { "$ref": "common.schema.json#/$defs/agentId" },
+    "to_agent": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/agentId" },
+        { "const": "unassigned" }
+      ],
+      "description": "unassigned means the DEK is sealed to break-glass recipients only and a human must re-seal before the next agent can read it. The friction is deliberate."
+    },
+    "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "reason": { "enum": ["context_limit", "session_end", "role_change", "failure", "manual"] },
+
+    "session_ref": { "$ref": "common.schema.json#/$defs/relPath" },
+    "state_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+    "prev_handover_hash": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/blake2bRef" },
+        { "type": "null" }
+      ],
+      "description": "null only for the first handover of a session chain."
+    },
+
+    "environment_fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["composer_lock_sha256", "package_lock_sha256", "worktree_manifest_sha256"],
+      "properties": {
+        "composer_lock_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "package_lock_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "worktree_manifest_sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Stands in for a commit SHA while this project has no VCS. Detects drift; does not enable rollback."
+        }
+      }
+    },
+
+    "dek": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "kdf", "generation", "wrapped_for"],
+      "properties": {
+        "alg": { "const": "XChaCha20-Poly1305-IETF" },
+        "kdf": { "const": "none" },
+        "generation": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Increments on every rotation and is bound into the AEAD associated data, so a ciphertext cannot be replayed across generations."
+        },
+        "wrapped_for": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "description": "At least two recipients: the incoming agent and a break-glass identity. One recipient is a single point of permanent loss.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["recipient", "sealed_box"],
+            "properties": {
+              "recipient": { "$ref": "common.schema.json#/$defs/agentId" },
+              "sealed_box": { "$ref": "common.schema.json#/$defs/base64" }
+            }
+          }
+        }
+      }
+    },
+
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "by", "value", "over"],
+      "properties": {
+        "alg": { "const": "Ed25519" },
+        "by": { "$ref": "common.schema.json#/$defs/agentId" },
+        "value": { "$ref": "common.schema.json#/$defs/base64" },
+        "over": { "const": "canonical-json(envelope minus .signature)" }
+      }
+    }
+  }
+}

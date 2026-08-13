@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "project": {
+    "id": "coreagent",
+    "root": "C:/Coreword/coreAgent",
+    "stack": ["php:8.2", "laravel:12", "inertia:2", "vue:3", "tailwind:3", "phpunit:11"],
+    "vcs": {
+      "type": "none",
+      "note": "No git repository yet. worktree_manifest_sha256 stands in for a commit SHA: it detects drift but gives no rollback. Run git init before relying on this harness."
+    }
+  },
+  "invariants": [
+    "Never edit vendor/ or node_modules/ directly.",
+    "All schema changes go through a migration; never hand-edit database/database.sqlite.",
+    "Never commit .env, and never copy a value out of it into .agent/.",
+    "Private keys live only under C:/ClaudeProfiles/<agent-id>/ and never under .agent/.",
+    "Test command is: composer test"
+  ],
+  "policy": {
+    "handover_requires_signature": true,
+    "handover_requires_clean_worktree": false,
+    "secret_tiers_allowed_in_envelope": ["B", "C"],
+    "dek_rotation": "every_handover",
+    "lease_ttl_seconds": 5400,
+    "break_glass_recipients": ["human:rickchow"]
+  },
+  "render": {
+    "session_md_template": "resources/views/agent/session.blade.php"
+  }
+}

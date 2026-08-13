@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coreagent.local/agent/schema/session-state.schema.json",
+  "title": "Session state snapshot",
+  "description": "Materialised from events.ndjson. This is the only file an incoming agent is required to read.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "session_id", "agent_id", "status", "started_at", "updated_at",
+    "event_count", "objective", "scope", "constraints", "work_items", "decisions",
+    "failed_attempts", "artifacts", "environment", "secrets", "open_questions",
+    "next_actions", "prev_handover_hash"
+  ],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "session_id": { "$ref": "common.schema.json#/$defs/sessionId" },
+    "agent_id": { "$ref": "common.schema.json#/$defs/agentId" },
+    "status": { "enum": ["active", "handing_over", "handed_over", "ended", "abandoned"] },
+    "started_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "event_count": { "type": "integer", "minimum": 0 },
+
+    "objective": { "type": "string", "minLength": 1 },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["in", "out"],
+      "properties": {
+        "in": { "type": "array", "items": { "type": "string" } },
+        "out": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+
+    "work_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "status", "acceptance"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^WI-[0-9]+$" },
+          "title": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["todo", "in_progress", "blocked", "done", "dropped"] },
+          "blocked_by": { "type": "array", "items": { "type": "string" } },
+          "acceptance": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A check someone else can run. 'Looks right' is not acceptance."
+          }
+        }
+      }
+    },
+
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "at", "decision", "rationale", "reversible"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^D-[0-9]+$" },
+          "at": { "$ref": "common.schema.json#/$defs/timestamp" },
+          "decision": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 },
+          "alternatives_rejected": { "type": "array", "items": { "type": "string" } },
+          "reversible": { "type": "boolean" }
+        }
+      }
+    },
+
+    "failed_attempts": {
+      "type": "array",
+      "description": "The field that stops an incoming agent re-walking a dead end. Treated as first class, not as commentary.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "attempted", "why_failed", "do_not_retry"],
+        "properties": {
+          "at": { "$ref": "common.schema.json#/$defs/timestamp" },
+          "attempted": { "type": "string", "minLength": 1 },
+          "why_failed": { "type": "string", "minLength": 1 },
+          "do_not_retry": { "type": "boolean" }
+        }
+      }
+    },
+
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "role", "status"],
+        "properties": {
+          "path": { "$ref": "common.schema.json#/$defs/relPath" },
+          "sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+          "role": { "enum": ["primary", "supporting", "test", "config", "generated"] },
+          "status": { "enum": ["created", "modified", "deleted", "unchanged"] }
+        }
+      }
+    },
+
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["php", "node", "composer_lock_sha256", "package_lock_sha256", "migrations_head", "services"],
+      "properties": {
+        "php": { "type": "string" },
+        "node": { "type": "string" },
+        "composer_lock_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "package_lock_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "migrations_head": { "type": ["string", "null"] },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "state", "port"],
+            "properties": {
+              "name": { "type": "string" },
+              "state": { "enum": ["running", "stopped", "unknown"] },
+              "port": { "type": ["integer", "null"], "minimum": 1, "maximum": 65535 }
+            }
+          }
+        }
+      }
+    },
+
+    "secrets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/secretEntry" }
+    },
+
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+
+    "next_actions": {
+      "type": "array",
+      "description": "Ordered. Entry 1 must name a file and what to change there — 'continue WI-2' is not a next action.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["order", "action"],
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "action": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "prev_handover_hash": {
+      "oneOf": [
+        { "$ref": "common.schema.json#/$defs/blake2bRef" },
+        { "type": "null" }
+      ]
+    }
+  },
+
+  "$defs": {
+    "secretEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "tier", "ref", "sealed"],
+      "properties": {
+        "key_id": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "tier": { "$ref": "common.schema.json#/$defs/secretTier" },
+        "ref": {
+          "type": "string",
+          "pattern": "^(env|sealed|vault|plain)://",
+          "description": "A locator, never a value. env:// and vault:// resolve outside the harness; sealed:// points into secrets.sealed.json."
+        },
+        "sealed": { "type": "boolean" },
+        "expires_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "tier": { "const": "A" } }, "required": ["tier"] },
+          "then": {
+            "properties": { "sealed": { "const": false } },
+            "description": "Tier A is reference-only. Sealing it buys nothing: any holder of the agent profile can unseal it, and the plaintext already sits in .env on the same machine."
+          }
+        },
+        {
+          "if": { "properties": { "sealed": { "const": true } }, "required": ["sealed"] },
+          "then": {
+            "required": ["expires_at"],
+            "description": "Anything sealed must expire. An unbounded sealed token turns a leaked profile into permanent access."
+          }
+        }
+      ]
+    }
+  }
+}

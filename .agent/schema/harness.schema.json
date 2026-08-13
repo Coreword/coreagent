@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coreagent.local/agent/schema/harness.schema.json",
+  "title": "Harness manifest",
+  "description": "One per project. Declares the invariants and policy every agent session must obey.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "invariants", "policy", "render"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "root", "stack", "vcs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "root": { "type": "string", "minLength": 1 },
+        "stack": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "vcs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "enum": ["git", "none"] },
+            "note": { "type": "string" }
+          }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Hard rules. An agent that would violate one must stop and ask instead."
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handover_requires_signature",
+        "handover_requires_clean_worktree",
+        "secret_tiers_allowed_in_envelope",
+        "dek_rotation",
+        "lease_ttl_seconds",
+        "break_glass_recipients"
+      ],
+      "properties": {
+        "handover_requires_signature": { "type": "boolean" },
+        "handover_requires_clean_worktree": { "type": "boolean" },
+        "secret_tiers_allowed_in_envelope": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/secretTier" },
+          "uniqueItems": true,
+          "not": { "contains": { "const": "A" } },
+          "description": "Tier A is structurally forbidden here — a long-lived credential must never enter an envelope."
+        },
+        "dek_rotation": { "enum": ["every_handover", "never"] },
+        "lease_ttl_seconds": { "type": "integer", "minimum": 60, "maximum": 86400 },
+        "break_glass_recipients": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/agentId" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "At least one. Without it, losing an agent profile loses every sealed secret permanently."
+        }
+      }
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_md_template"],
+      "properties": {
+        "session_md_template": { "$ref": "common.schema.json#/$defs/relPath" }
+      }
+    }
+  }
+}

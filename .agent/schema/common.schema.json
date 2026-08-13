@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coreagent.local/agent/schema/common.schema.json",
+  "title": "Shared primitive types for the agent harness",
+  "$defs": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+[.][0-9]+[.][0-9]+$",
+      "description": "SemVer of the schema this document conforms to."
+    },
+    "agentId": {
+      "type": "string",
+      "pattern": "^(agent|human):[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "description": "Stable identity, e.g. agent:claude-opus-5:a3f9 or human:rickchow."
+    },
+    "sessionId": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}Z-[0-9a-f]{4}$",
+      "description": "UTC start timestamp to the minute plus a 4-hex disambiguator."
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "ISO 8601, UTC only, second precision. Offsets are rejected so that lexical ordering equals chronological ordering."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "blake2bRef": {
+      "type": "string",
+      "pattern": "^blake2b:[0-9a-f]{64}$"
+    },
+    "base64": {
+      "type": "string",
+      "pattern": "^base64:[A-Za-z0-9+/]+={0,2}$",
+      "description": "Prefixed so a key material blob never reads as an ordinary string in a diff."
+    },
+    "relPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/][^:]*$",
+      "description": "Project-relative POSIX path. Absolute paths, drive letters and backslash separators are rejected in PathGuard rather than here — a regex is too weak to be the only check."
+    },
+    "secretTier": {
+      "enum": ["A", "B", "C"],
+      "description": "A = long-lived credential (reference only, never sealed). B = short-lived token (sealable, must carry expires_at). C = non-secret config (plaintext)."
+    }
+  }
+}

@@ -9,3 +9,7 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Byte-exact golden fixtures for the canonical JSON encoder. Any line-ending
+# translation here would silently break the signature contract these lock.
+tests/Fixtures/agent/canonical/* -text

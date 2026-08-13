@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coreagent.local/agent/schema/agents.schema.json",
+  "title": "Agent identity registry",
+  "description": "Public keys only. A private key appearing in this file is a critical defect — agent:harness:doctor scans for it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "agents"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/schemaVersion" },
+    "agents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/agent" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_name", "box_public_key", "sign_public_key", "created_at", "revoked_at"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/agentId" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "model": { "type": "string" },
+        "harness": { "type": "string" },
+        "box_public_key": { "$ref": "common.schema.json#/$defs/base64" },
+        "sign_public_key": { "$ref": "common.schema.json#/$defs/base64" },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "revoked_at": {
+          "oneOf": [
+            { "$ref": "common.schema.json#/$defs/timestamp" },
+            { "type": "null" }
+          ],
+          "description": "Explicit null rather than an absent key, so canonical serialisation stays stable across revocation."
+        }
+      }
+    }
+  }
+}

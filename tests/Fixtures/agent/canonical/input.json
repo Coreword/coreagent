@@ -1,0 +1,17 @@
+{
+  "zulu": "last",
+  "Alpha": "uppercase sorts before lowercase",
+  "nested": {
+    "b": [3, 2, 1],
+    "a": null,
+    "c": { "inner": true }
+  },
+  "escapes": "quote:\" backslash:\\ slash:/ tab:\t newline:\n cr:\r bell:\u0007 unit-sep:\u001f",
+  "unicode": "中文 — emoji 🔐 — accented é",
+  "numbers": { "neg": -42, "zero": 0, "big": 9007199254740993 },
+  "empty_array": [],
+  "empty_object": {},
+  "10": "numeric key ten",
+  "2": "numeric key two",
+  "flag_false": false
+}
