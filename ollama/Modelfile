@@ -1,0 +1,36 @@
+# coreAgent's self-hosted model.
+#
+# Build:  ollama create coreagent-qwen -f ollama/Modelfile
+# Use:    QWEN_LORA_MODEL=coreagent-qwen
+#
+# Kept in the repo rather than built by hand so the model the app talks to is
+# reproducible — an untracked `ollama create` on one machine is exactly the
+# drift the agent harness exists to catch.
+
+FROM qwen2.5:3b
+
+# --- LoRA adapter ------------------------------------------------------------
+# Uncomment once a trained adapter exists at this path. Ollama wants GGUF, so a
+# PEFT/safetensors adapter has to be converted first (llama.cpp's
+# convert_lora_to_gguf.py). Training the adapter is a separate job needing a
+# dataset and a GPU run; this line is only the wiring for its output.
+#
+# ADAPTER ./adapters/coreagent-lora.gguf
+# -----------------------------------------------------------------------------
+
+# Ollama defaults to a 2048-token context. The agent loop sends a system prompt,
+# the full conversation history and every tool schema on each turn, which passes
+# 2048 quickly — and the overflow is silently truncated from the front, so the
+# system prompt is the first thing lost. This is the single most important
+# setting in this file.
+PARAMETER num_ctx 8192
+
+# Low, not zero: the app asks for factual answers over case data, but a hard 0
+# makes small models loop on repeated phrases.
+PARAMETER temperature 0.6
+PARAMETER top_p 0.9
+
+# Only reached when the model is used directly (`ollama run coreagent-qwen`).
+# In the app, AgentOrchestrator::SYSTEM_PROMPT is sent with every request and
+# takes precedence over this one.
+SYSTEM """你係 coreAgent，運行喺 Altodock Digital 平台上嘅 AI 助手。回覆用廣東話，簡潔清楚。唔知道就講唔知道，唔好作。"""

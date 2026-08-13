@@ -10,7 +10,6 @@ use App\Services\Agent\ToolRegistry;
 use App\Services\Llm\AnthropicProvider;
 use App\Services\Llm\OpenAiCompatibleProvider;
 use App\Services\Llm\ProviderRouter;
-use App\Services\Llm\QwenLoraProvider;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
                 'openai' => new OpenAiCompatibleProvider('openai', config('providers.openai')),
                 'deepseek' => new OpenAiCompatibleProvider('deepseek', config('providers.deepseek')),
                 'claude' => new AnthropicProvider(config('providers.claude')),
-                'qwen_lora' => new QwenLoraProvider(config('providers.qwen_lora')),
+                'qwen_lora' => new OpenAiCompatibleProvider('qwen_lora', config('providers.qwen_lora')),
             ]);
         });
     }

@@ -10,9 +10,7 @@ use RuntimeException;
 // tool_calls), so both go through this one adapter with different config.
 class OpenAiCompatibleProvider implements LlmProviderInterface
 {
-    public function __construct(protected string $providerKey, protected array $config)
-    {
-    }
+    public function __construct(protected string $providerKey, protected array $config) {}
 
     public function key(): string
     {
@@ -21,13 +19,31 @@ class OpenAiCompatibleProvider implements LlmProviderInterface
 
     public function isConfigured(): bool
     {
-        return filled($this->config['api_key'] ?? null);
+        // openai/deepseek always have a base_url default, so this only changes
+        // behaviour for a provider like qwen_lora where base_url is genuinely
+        // optional — an api_key with nowhere to send it isn't "configured".
+        return filled($this->config['api_key'] ?? null) && filled($this->config['base_url'] ?? null);
+    }
+
+    /**
+     * Per-provider so one slow self-hosted model cannot set the pace for the
+     * hosted ones. Three providers falling back at 120s each would keep a web
+     * request open for six minutes before the user saw anything.
+     */
+    public function timeout(): int
+    {
+        return (int) ($this->config['timeout'] ?? 30);
+    }
+
+    public function supportsTools(): bool
+    {
+        return (bool) ($this->config['supports_tools'] ?? true);
     }
 
     public function chat(array $messages, array $tools = []): array
     {
         if (! $this->isConfigured()) {
-            throw new ProviderNotConfiguredException("Provider [{$this->providerKey}] has no api_key configured.");
+            throw new ProviderNotConfiguredException("Provider [{$this->providerKey}] needs both api_key and base_url; one of them is empty.");
         }
 
         $payload = [
@@ -35,7 +51,11 @@ class OpenAiCompatibleProvider implements LlmProviderInterface
             'messages' => array_map([$this, 'toWireMessage'], $messages),
         ];
 
-        if (! empty($tools)) {
+        // A model that cannot call tools is sent none. Passing them anyway does
+        // not degrade gracefully: small local models answer with malformed or
+        // invented calls, and the orchestrator only finds out after burning a
+        // round trip trying to execute one.
+        if (! empty($tools) && $this->supportsTools()) {
             $payload['tools'] = array_map(fn (array $tool) => [
                 'type' => 'function',
                 'function' => [
@@ -47,7 +67,9 @@ class OpenAiCompatibleProvider implements LlmProviderInterface
         }
 
         $response = Http::withToken($this->config['api_key'])
+            ->withHeaders($this->config['headers'] ?? [])
             ->baseUrl($this->config['base_url'])
+            ->timeout($this->timeout())
             ->post('/chat/completions', $payload);
 
         if ($response->failed()) {

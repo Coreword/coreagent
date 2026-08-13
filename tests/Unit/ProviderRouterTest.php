@@ -53,6 +53,69 @@ class ProviderRouterTest extends TestCase
         $this->assertSame('reliable', $result['provider_used']);
     }
 
+    public function test_the_failure_message_names_which_providers_were_skipped(): void
+    {
+        config()->set('providers.chat_priority', ['openai', 'qwen_lora']);
+
+        $router = new ProviderRouter([
+            'openai' => $this->fakeProvider('openai', configured: false),
+            'qwen_lora' => $this->fakeProvider('qwen_lora', configured: false),
+        ]);
+
+        try {
+            $router->chat([['role' => 'user', 'content' => 'hi']]);
+            $this->fail('Expected the router to give up.');
+        } catch (AllProvidersFailedException $e) {
+            $this->assertStringContainsString('openai', $e->getMessage());
+            $this->assertStringContainsString('qwen_lora', $e->getMessage());
+            $this->assertStringContainsString('QWEN_LORA_BASE_URL', $e->getMessage());
+        }
+    }
+
+    public function test_a_configured_provider_that_failed_is_not_reported_as_unconfigured(): void
+    {
+        // The old fixed wording said "no API key" whatever happened, which made
+        // a qwen_lora timeout read as "nothing is set up" while debugging.
+        config()->set('providers.chat_priority', ['openai', 'qwen_lora']);
+
+        $router = new ProviderRouter([
+            'openai' => $this->fakeProvider('openai', configured: true, throws: true),
+            'qwen_lora' => $this->fakeProvider('qwen_lora', configured: false),
+        ]);
+
+        try {
+            $router->chat([['role' => 'user', 'content' => 'hi']]);
+            $this->fail('Expected the router to give up.');
+        } catch (AllProvidersFailedException $e) {
+            $this->assertStringContainsString('openai', $e->getMessage());
+            $this->assertStringContainsString('laravel.log', $e->getMessage());
+            $this->assertStringNotContainsString('冇任何 LLM provider 配置好', $e->getMessage());
+        }
+    }
+
+    public function test_a_forced_provider_distinguishes_unconfigured_from_failed(): void
+    {
+        $router = new ProviderRouter([
+            'qwen_lora' => $this->fakeProvider('qwen_lora', configured: false),
+            'openai' => $this->fakeProvider('openai', configured: true, throws: true),
+        ]);
+        config()->set('providers.chat_priority', []);
+
+        try {
+            $router->chat([['role' => 'user', 'content' => 'hi']], forceProvider: 'qwen_lora');
+            $this->fail('Expected the router to give up.');
+        } catch (AllProvidersFailedException $e) {
+            $this->assertStringContainsString('未配置', $e->getMessage());
+        }
+
+        try {
+            $router->chat([['role' => 'user', 'content' => 'hi']], forceProvider: 'openai');
+            $this->fail('Expected the router to give up.');
+        } catch (AllProvidersFailedException $e) {
+            $this->assertStringContainsString('請求失敗', $e->getMessage());
+        }
+    }
+
     protected function fakeProvider(string $key, bool $configured, bool $throws = false): LlmProviderInterface
     {
         return new class($key, $configured, $throws) implements LlmProviderInterface
@@ -61,8 +124,7 @@ class ProviderRouterTest extends TestCase
                 protected string $key,
                 protected bool $configured,
                 protected bool $throws,
-            ) {
-            }
+            ) {}
 
             public function key(): string
             {

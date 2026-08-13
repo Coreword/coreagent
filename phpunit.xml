@@ -19,6 +19,14 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- Provider credentials are pinned empty so the suite is hermetic. Without
+             this, a developer .env with a working QWEN_LORA_BASE_URL makes the
+             "no provider configured" tests reach a real local model: slow, and
+             passing or failing depending on whose machine runs them. -->
+        <env name="OPENAI_API_KEY" value=""/>
+        <env name="DEEPSEEK_API_KEY" value=""/>
+        <env name="ANTHROPIC_API_KEY" value=""/>
+        <env name="QWEN_LORA_BASE_URL" value=""/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

@@ -41,7 +41,13 @@ class AgentChatSmokeTest extends TestCase
 
         $assistantMessage = $conversation->messages()->where('role', 'assistant')->first();
         $this->assertNotNull($assistantMessage);
-        $this->assertStringContainsString('未設定任何 LLM provider', $assistantMessage->content);
+        // Asserts what the message has to tell the user rather than its exact
+        // wording: which providers were unusable, and where to go to fix it.
+        // Pinning the sentence made this test fail for a copy edit while
+        // letting a message that named the wrong providers pass.
+        $this->assertStringContainsString('openai', $assistantMessage->content);
+        $this->assertStringContainsString('qwen_lora', $assistantMessage->content);
+        $this->assertStringContainsString('.env', $assistantMessage->content);
     }
 
     public function test_conversation_is_scoped_to_its_owner(): void

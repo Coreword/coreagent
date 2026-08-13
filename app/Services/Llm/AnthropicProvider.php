@@ -7,9 +7,7 @@ use RuntimeException;
 
 class AnthropicProvider implements LlmProviderInterface
 {
-    public function __construct(protected array $config)
-    {
-    }
+    public function __construct(protected array $config) {}
 
     public function key(): string
     {
@@ -19,6 +17,15 @@ class AnthropicProvider implements LlmProviderInterface
     public function isConfigured(): bool
     {
         return filled($this->config['api_key'] ?? null);
+    }
+
+    /**
+     * Read from config for the same reason the OpenAI-compatible adapter does:
+     * fallback time is cumulative, so each provider owns its own budget.
+     */
+    public function timeout(): int
+    {
+        return (int) ($this->config['timeout'] ?? 60);
     }
 
     public function chat(array $messages, array $tools = []): array
@@ -61,6 +68,7 @@ class AnthropicProvider implements LlmProviderInterface
             'anthropic-version' => $this->config['version'],
         ])
             ->baseUrl($this->config['base_url'])
+            ->timeout($this->timeout())
             ->post('/v1/messages', $payload);
 
         if ($response->failed()) {
