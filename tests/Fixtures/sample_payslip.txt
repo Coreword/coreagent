@@ -1,0 +1,15 @@
+*** SYNTHETIC TEST FIXTURE — 唔係真實文件，純粹用嚟驗證 ingest/chunk/rule-engine pipeline ***
+
+PAYSLIP
+
+Employee Name: Test Applicant
+Employer: Synthetic Test Co Ltd
+Pay Date: 2026-06-30
+Pay Frequency: monthly
+Tax Code: 1257L
+
+Gross Pay: 4200.00
+Net Pay: 3150.00
+
+This is a synthetic fixture generated for automated testing purposes only.
+It does not represent any real person's payslip or financial information.
