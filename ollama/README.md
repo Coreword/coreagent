@@ -60,3 +60,43 @@ needs a credential checked in front of it — Cloudflare Access, an nginx
 `Authorization` header and `QWEN_LORA_CF_ACCESS_CLIENT_ID` /
 `QWEN_LORA_CF_ACCESS_CLIENT_SECRET` in Cloudflare's header pair, but the
 provider only sends them: something else has to verify them.
+
+## Reaching this machine from the deployed server
+
+The server runs its own Ollama on its CPU, which works but is slow — 5.3 tok/s
+measured on a 6-core EPYC, so a normal reply takes about half a minute. A
+machine with a GPU can serve the same model far faster, and an SSH reverse
+tunnel is enough to let the server use it when it is available.
+
+From the GPU machine:
+
+```
+ssh -N -R 127.0.0.1:11435:127.0.0.1:11434 contabo-coreword
+```
+
+Then on the server:
+
+```
+QWEN_GPU_BASE_URL=http://127.0.0.1:11435/v1
+CHAT_PROVIDER_PRIORITY=openai,deepseek,claude,qwen_gpu,qwen_lora
+```
+
+Port 11435 on the server because 11434 there is the server's own Ollama, which
+stays as the fallback.
+
+`tunnel.ps1` runs the same thing in a reconnect loop and starts Ollama first if
+it is not already up.
+
+### Why this needs no gateway
+
+The remote end binds to `127.0.0.1`, so the forwarded port exists only on the
+server's loopback. Nothing is published, so there is nothing to authenticate —
+which is what makes this simpler than exposing Ollama through a public hostname,
+not just cheaper.
+
+### When the tunnel is down
+
+The port refuses the connection, the provider throws immediately, and
+`ProviderRouter` falls through to `qwen_lora` on the server's CPU. No timeout is
+consumed. The GPU machine is not expected to be up all the time, and the chain
+is arranged so that it does not have to be.

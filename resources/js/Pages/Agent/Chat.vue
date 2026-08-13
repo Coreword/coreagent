@@ -74,7 +74,8 @@ const providerLabels = {
     openai: 'OpenAI',
     deepseek: 'DeepSeek',
     claude: 'Claude',
-    qwen_lora: 'Qwen (self-hosted)',
+    qwen_gpu: 'Qwen (GPU tunnel)',
+    qwen_lora: 'Qwen (server CPU)',
 };
 </script>
 

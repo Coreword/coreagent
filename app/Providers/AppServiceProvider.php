@@ -33,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
                 'openai' => new OpenAiCompatibleProvider('openai', config('providers.openai')),
                 'deepseek' => new OpenAiCompatibleProvider('deepseek', config('providers.deepseek')),
                 'claude' => new AnthropicProvider(config('providers.claude')),
+                'qwen_gpu' => new OpenAiCompatibleProvider('qwen_gpu', config('providers.qwen_gpu')),
                 'qwen_lora' => new OpenAiCompatibleProvider('qwen_lora', config('providers.qwen_lora')),
             ]);
         });
