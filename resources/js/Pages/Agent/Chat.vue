@@ -40,6 +40,19 @@ function stepsFor(messageId) {
     return (props.activeConversation?.steps ?? []).filter((s) => s.message_id === messageId);
 }
 
+// Tool-call trace shown in the collapsible "工具執行過程" section — excludes
+// final_answer, which is surfaced separately as the message's "via <model>" tag.
+function toolStepsFor(messageId) {
+    return stepsFor(messageId).filter((s) => s.step_type !== 'final_answer');
+}
+
+// Which provider actually produced this assistant message — distinct from the
+// conversation's provider *setting* (which may be "Auto" and fall back at
+// request time), this is what really answered.
+function providerFor(messageId) {
+    return stepsFor(messageId).find((s) => s.step_type === 'final_answer')?.provider_used ?? null;
+}
+
 let pollTimer = null;
 
 watch(
@@ -118,14 +131,17 @@ const providerLabels = {
                             ></span>
                             {{ activeConversation.status === 'processing' ? '處理緊…' : '待命' }}
                         </span>
-                        <select
-                            :value="activeConversation.provider ?? ''"
-                            @change="setProvider"
-                            class="rounded-md border border-[#2a2f3d] bg-[#0d0f14] px-2 py-1 text-xs text-[#e6e8ef] focus:border-[#d97757] focus:ring-[#d97757]"
-                        >
-                            <option value="">Auto（跟優先序 fallback）</option>
-                            <option v-for="p in availableProviders" :key="p" :value="p">{{ providerLabels[p] ?? p }}</option>
-                        </select>
+                        <label class="flex items-center gap-2">
+                            <span>Model:</span>
+                            <select
+                                :value="activeConversation.provider ?? ''"
+                                @change="setProvider"
+                                class="rounded-md border border-[#2a2f3d] bg-[#0d0f14] px-2 py-1 text-xs text-[#e6e8ef] focus:border-[#d97757] focus:ring-[#d97757]"
+                            >
+                                <option value="">Auto（跟優先序 fallback）</option>
+                                <option v-for="p in availableProviders" :key="p" :value="p">{{ providerLabels[p] ?? p }}</option>
+                            </select>
+                        </label>
                     </div>
 
                     <div class="flex-1 space-y-3 overflow-y-auto p-4">
@@ -135,10 +151,13 @@ const providerLabels = {
                                 :class="m.role === 'user' ? 'bg-[#2a3040]' : 'bg-[#1c2432]'"
                             >
                                 <p class="whitespace-pre-line">{{ m.content }}</p>
-                                <details v-if="stepsFor(m.id).length" class="mt-2 text-xs text-[#8b90a0]">
-                                    <summary class="cursor-pointer hover:text-[#e6e8ef]">工具執行過程（{{ stepsFor(m.id).length }} steps）</summary>
+                                <div v-if="m.role === 'assistant' && providerFor(m.id)" class="mt-1.5 text-xs text-[#d97757]">
+                                    via {{ providerLabels[providerFor(m.id)] ?? providerFor(m.id) }}
+                                </div>
+                                <details v-if="toolStepsFor(m.id).length" class="mt-2 text-xs text-[#8b90a0]">
+                                    <summary class="cursor-pointer hover:text-[#e6e8ef]">工具執行過程（{{ toolStepsFor(m.id).length }} steps）</summary>
                                     <ul class="mt-1 space-y-1">
-                                        <li v-for="s in stepsFor(m.id)" :key="s.id">
+                                        <li v-for="s in toolStepsFor(m.id)" :key="s.id">
                                             🔧 [{{ s.step_type }}] {{ s.tool_name }}
                                             <span v-if="s.provider_used" class="text-[#d97757]">— {{ s.provider_used }}</span>
                                         </li>
