@@ -4,18 +4,12 @@ use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+// coreAgent's home surface is the AI chat — '/' just canonicalises to '/chat'
+// so the nav's "AI Chat" link highlights correctly (route().current('chat.*')).
+Route::redirect('/', '/chat')->middleware('auth')->name('home');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
