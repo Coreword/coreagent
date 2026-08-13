@@ -519,7 +519,7 @@ Phase 0–2 係硬骨頭（crypto 同 canonical 序列化錯咗好難補救）�
 
 | 風險 | 對策 |
 |---|---|
-| **呢個 repo 唔係 git** | Handover 冇 commit SHA 做錨點。Phase 0 加 `worktree_manifest_sha256`：對 `app/ config/ routes/ database/ resources/` 逐檔 sha256 排序後再 hash。**強烈建議直接 `git init`** — manifest 只係 drift 偵測，冇 git 就冇得 rollback |
+| ~~呢個 repo 唔係 git~~ ✅ 已解決 | 2026-08-13 `git init`，origin `Coreword/coreagent`，default branch `main`。`worktree_manifest_sha256` **保留**，唔係俾 commit SHA 取代 — commit SHA 睇唔到未 commit 嘅 working-tree drift，而 agent 交接嗰刻通常就係喺呢個狀態。Phase 3 要喺 `environment_fingerprint` 加多個 `git_commit` field，兩者並存 |
 | Canonical JSON 被人改動 | Golden-file 測試 + 檔頭加 `@internal — 改動會令所有歷史簽名失效` |
 | Agent profile 目錄遺失 | Break-glass recipient 強制存在；`doctor` 檢查每個 DEK 至少有 2 個 recipient |
 | Secret 誤入 Tier C | `agent:secret:put` 對值做 entropy heuristic（長度 ≥ 20 且 base64/hex-like）→ 唔准設 tier C，除非 `--force` |
@@ -529,12 +529,20 @@ Phase 0–2 係硬骨頭（crypto 同 canonical 序列化錯咗好難補救）�
 
 ---
 
-## 10. 開始做嘅第一步
+## 10. VCS 狀態
 
-```bash
-git init && git add -A && git commit -m "baseline before agent harness"
-```
+✅ 2026-08-13 完成。
 
-未有 VCS 之前唔好開始 — harness 會產生大量檔案改動，冇 git 你 rollback 唔到，而 harness 本身嘅價值有一半就係「出事可以退返轉頭」。
+- `git init`，default branch `main`
+- Commit 1 `7c3c9dd` — baseline，harness 之前嘅 app（182 檔）
+- Commit 2 `827d5d6` — Phase 0 harness，獨立成一個可 review 嘅 diff
+- Remote `origin` → `https://github.com/Coreword/coreagent.git`
+- `.gitattributes` 加咗 `tests/Fixtures/agent/canonical/* -text` — golden fixture 唔可以俾 line-ending 轉換動到，否則簽名契約會靜靜地爛
 
-之後由 Phase 0 開始：建 `.agent/` 骨架同 4 份 schema，跟住寫 `CanonicalJson` 同佢嘅 golden-file 測試。
+Commit 前審查過：`.env`（`.gitignore:3`）同 `database/database.sqlite`（`database/.gitignore:1`）都已被 ignore，`vendor/` 同 `node_modules/` 冇入，staged 內容掃過冇 key-shaped string。
+
+---
+
+## 11. 下一步
+
+Phase 1：`EventLog`、`Snapshotter`、`agent:session:*` commands、Blade render。

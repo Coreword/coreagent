@@ -5,8 +5,8 @@
     "root": "C:/Coreword/coreAgent",
     "stack": ["php:8.2", "laravel:12", "inertia:2", "vue:3", "tailwind:3", "phpunit:11"],
     "vcs": {
-      "type": "none",
-      "note": "No git repository yet. worktree_manifest_sha256 stands in for a commit SHA: it detects drift but gives no rollback. Run git init before relying on this harness."
+      "type": "git",
+      "note": "Initialised 2026-08-13, origin Coreword/coreagent, default branch main. worktree_manifest_sha256 stays in the handover fingerprint alongside any commit SHA: a commit SHA cannot see uncommitted working-tree drift, which is exactly the state an agent hands over in."
     }
   },
   "invariants": [
