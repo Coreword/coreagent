@@ -55,6 +55,7 @@ class ConversationController extends Controller
             'activeConversation' => $active?->load([
                 'messages' => fn ($q) => $q->where('role', '!=', 'tool'),
                 'steps',
+                'videoGenerations' => fn ($q) => $q->latest(),
             ]),
             'availableProviders' => app(ProviderRouter::class)->availableProviders(),
         ]);

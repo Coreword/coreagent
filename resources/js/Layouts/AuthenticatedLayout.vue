@@ -6,8 +6,14 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link } from '@inertiajs/vue3';
+import { currentTheme, toggleTheme } from '@/theme';
 
 const showingNavigationDropdown = ref(false);
+const theme = ref(currentTheme());
+
+function onToggleTheme() {
+    theme.value = toggleTheme();
+}
 </script>
 
 <template>
@@ -45,10 +51,39 @@ const showingNavigationDropdown = ref(false);
                                 >
                                     AI Chat
                                 </NavLink>
+                                <a
+                                    href="https://altostudio.altodock.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1 px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700 transition duration-150 ease-in-out"
+                                >
+                                    AltoStudio
+                                    <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                        <path d="M15 3h6v6" />
+                                        <path d="M10 14 21 3" />
+                                    </svg>
+                                </a>
                             </div>
                         </div>
 
                         <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                            <!-- Theme toggle -->
+                            <button
+                                type="button"
+                                @click="onToggleTheme"
+                                class="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                :title="theme === 'dark' ? '轉做 light mode' : '轉做 dark mode'"
+                            >
+                                <svg v-if="theme === 'dark'" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="4" />
+                                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                                </svg>
+                                <svg v-else class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                </svg>
+                            </button>
+
                             <!-- Settings Dropdown -->
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
@@ -158,6 +193,21 @@ const showingNavigationDropdown = ref(false);
                         >
                             AI Chat
                         </ResponsiveNavLink>
+                        <a
+                            href="https://altostudio.altodock.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition duration-150 ease-in-out"
+                        >
+                            AltoStudio ↗
+                        </a>
+                        <button
+                            type="button"
+                            @click="onToggleTheme"
+                            class="block w-full px-4 py-2 text-start text-base font-medium text-gray-600 transition hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
+                        >
+                            {{ theme === 'dark' ? '☀️ Light mode' : '🌙 Dark mode' }}
+                        </button>
                     </div>
 
                     <!-- Responsive Settings Options -->
