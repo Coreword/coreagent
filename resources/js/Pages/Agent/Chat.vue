@@ -169,84 +169,59 @@ const providerLabels = {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">AI Chat</h2>
+            <span v-if="activeConversation">{{ activeConversation.title ?? '（未有標題）' }}</span>
+            <span v-else>AI Chat</span>
         </template>
 
-        <!-- Console colour language (dark mode): --bg #0f1115 / --panel #161923 /
-             --border #2a2f3d / --accent #d97757 (Claude terracotta, same in both
-             modes) / --user-bubble #2a3040 / --assistant-bubble #1c2432 -->
-        <div class="mx-auto flex h-[calc(100vh-8.5rem)] max-w-[100rem] gap-0 overflow-hidden rounded-lg border border-gray-200 dark:border-[#2a2f3d] px-0 py-0 sm:mx-4 lg:mx-auto">
-            <!-- Left: conversation history -->
-            <aside class="flex w-72 shrink-0 flex-col border-r border-gray-200 bg-gray-50 dark:border-[#2a2f3d] dark:bg-[#161923]">
-                <div class="border-b border-gray-200 p-3 dark:border-[#2a2f3d]">
-                    <button
-                        @click="newConversation"
-                        class="w-full rounded-md border border-[#d97757] bg-[#d97757] px-3 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:brightness-110"
-                    >
-                        + New chat
-                    </button>
-                </div>
-                <div class="flex-1 overflow-y-auto">
-                    <Link
-                        v-for="c in conversations"
-                        :key="c.id"
-                        :href="route('chat.show', c.id)"
-                        class="block border-b border-gray-200 px-3 py-2 text-sm transition hover:bg-gray-100 dark:border-[#2a2f3d] dark:hover:bg-[#1c2130]"
-                        :class="activeConversation?.id === c.id ? 'bg-gray-100 dark:bg-[#1c2130]' : ''"
-                    >
-                        <div class="truncate text-gray-900 dark:text-[#e6e8ef]">{{ c.title ?? '（未有標題）' }}</div>
-                        <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-[#8b90a0]">
-                            <span
-                                class="inline-block h-2 w-2 rounded-full"
-                                :class="c.status === 'processing' ? 'bg-amber-400' : 'bg-emerald-500'"
-                            ></span>
-                            {{ c.status }}
-                        </div>
-                    </Link>
-                    <div v-if="conversations.length === 0" class="p-3 text-sm text-gray-500 dark:text-[#8b90a0]">未有對話</div>
-                </div>
-            </aside>
+        <template #topbar-right>
+            <label v-if="activeConversation" class="input-shell" style="min-height: 30px; padding-inline: 8px;">
+                <select :value="activeConversation.provider ?? ''" @change="setProvider" class="model-select">
+                    <option value="">Auto</option>
+                    <option v-for="p in availableProviders" :key="p" :value="p">{{ providerLabels[p] ?? p }}</option>
+                </select>
+            </label>
+            <span v-if="activeConversation" class="status-pill" :class="activeConversation.status === 'processing' ? 'status-processing' : 'status-idle'">
+                {{ activeConversation.status === 'processing' ? '處理緊…' : '待命' }}
+            </span>
+        </template>
 
-            <!-- Right: chat panel -->
-            <section class="flex flex-1 flex-col bg-white dark:bg-[#0f1115]">
+        <!-- Sidebar's "Recent chats" region (see AuthenticatedLayout.vue) — the
+             conversation list lives here instead of a second aside, so
+             coreAgent has one nav column like CoreAI's reference design. -->
+        <template #recent-chats>
+            <button @click="newConversation" class="app-button button-primary new-agent-button">+ New chat</button>
+            <Link
+                v-for="c in conversations"
+                :key="c.id"
+                :href="route('chat.show', c.id)"
+                :class="{ active: activeConversation?.id === c.id }"
+            >
+                <span class="title">{{ c.title ?? '（未有標題）' }}</span>
+                <span class="status-row">
+                    <span class="status-dot" :class="{ processing: c.status === 'processing' }"></span>
+                    {{ c.status }}
+                </span>
+            </Link>
+            <div v-if="conversations.length === 0" class="recent-chats-empty">未有對話</div>
+        </template>
+
+        <div class="mx-auto flex h-[calc(100vh-4rem)] max-w-[100rem] gap-0 overflow-hidden">
+            <!-- Chat panel -->
+            <section class="chat-scroll flex flex-1 flex-col">
                 <template v-if="activeConversation">
-                    <div class="flex items-center justify-between border-b border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-[#2a2f3d] dark:text-[#8b90a0]">
-                        <span class="flex items-center gap-1.5">
-                            <span
-                                class="inline-block h-2 w-2 rounded-full"
-                                :class="activeConversation.status === 'processing' ? 'bg-amber-400' : 'bg-emerald-500'"
-                            ></span>
-                            {{ activeConversation.status === 'processing' ? '處理緊…' : '待命' }}
-                        </span>
-                        <label class="flex items-center gap-2">
-                            <span>Model:</span>
-                            <select
-                                :value="activeConversation.provider ?? ''"
-                                @change="setProvider"
-                                class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 focus:border-[#d97757] focus:ring-[#d97757] dark:border-[#2a2f3d] dark:bg-[#0d0f14] dark:text-[#e6e8ef]"
-                            >
-                                <option value="">Auto（跟優先序 fallback）</option>
-                                <option v-for="p in availableProviders" :key="p" :value="p">{{ providerLabels[p] ?? p }}</option>
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="flex-1 space-y-3 overflow-y-auto p-4">
+                    <div class="flex-1 space-y-3 overflow-y-auto p-5">
                         <div v-for="m in activeConversation.messages" :key="m.id" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
-                            <div
-                                class="max-w-lg rounded-[10px] px-4 py-2.5 text-sm leading-relaxed text-gray-900 dark:text-[#e6e8ef]"
-                                :class="m.role === 'user' ? 'bg-indigo-100 dark:bg-[#2a3040]' : 'bg-gray-100 dark:bg-[#1c2432]'"
-                            >
+                            <div class="chat-bubble" :class="m.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'">
                                 <p class="whitespace-pre-line">{{ m.content }}</p>
-                                <div v-if="m.role === 'assistant' && providerFor(m.id)" class="mt-1.5 text-xs text-[#d97757]">
+                                <div v-if="m.role === 'assistant' && providerFor(m.id)" class="chat-provider-tag">
                                     via {{ providerLabels[providerFor(m.id)] ?? providerFor(m.id) }}
                                 </div>
-                                <details v-if="toolStepsFor(m.id).length" class="mt-2 text-xs text-gray-500 dark:text-[#8b90a0]">
-                                    <summary class="cursor-pointer hover:text-gray-900 dark:hover:text-[#e6e8ef]">工具執行過程（{{ toolStepsFor(m.id).length }} steps）</summary>
-                                    <ul class="mt-1 space-y-1">
+                                <details v-if="toolStepsFor(m.id).length" class="tool-trace mt-2">
+                                    <summary>工具執行過程（{{ toolStepsFor(m.id).length }} steps）</summary>
+                                    <ul class="mt-1 space-y-1" style="color: var(--cw-muted); font-size: 10px;">
                                         <li v-for="s in toolStepsFor(m.id)" :key="s.id">
                                             🔧 [{{ s.step_type }}] {{ s.tool_name }}
-                                            <span v-if="s.provider_used" class="text-[#d97757]">— {{ s.provider_used }}</span>
+                                            <span v-if="s.provider_used" style="color: var(--cw-orange);">— {{ s.provider_used }}</span>
                                         </li>
                                     </ul>
                                 </details>
@@ -258,108 +233,103 @@ const providerLabels = {
                              resume intent (see isHistoryResumeIntent above), ported from
                              claude-web-console's showResumePicker(). -->
                         <div v-if="resumeQuery !== null" class="flex justify-start">
-                            <div class="max-w-md rounded-[10px] bg-gray-100 px-4 py-2.5 text-sm text-gray-900 dark:bg-[#1c2432] dark:text-[#e6e8ef]">
+                            <div class="chat-bubble chat-bubble-assistant" style="max-width: 28rem;">
                                 <div class="mb-2 flex items-center justify-between">
                                     <span>{{ resumeQuery ? `搜尋「${resumeQuery}」嘅對話：` : '揀一個對話 resume：' }}</span>
-                                    <button type="button" class="text-gray-500 hover:text-gray-900 dark:text-[#8b90a0] dark:hover:text-[#e6e8ef]" @click="closeResumePicker">✕</button>
+                                    <button type="button" style="color: var(--cw-muted);" @click="closeResumePicker">✕</button>
                                 </div>
-                                <div v-if="resumeResults.length === 0" class="text-gray-500 dark:text-[#8b90a0]">
+                                <div v-if="resumeResults.length === 0" style="color: var(--cw-muted);">
                                     未搵到符合嘅對話。
                                 </div>
                                 <button
                                     v-for="c in resumeResults"
                                     :key="c.id"
                                     type="button"
-                                    class="block w-full rounded-md px-2 py-1.5 text-left transition hover:bg-gray-200 dark:hover:bg-[#232838]"
+                                    class="block w-full rounded-md px-2 py-1.5 text-left transition hover:bg-[var(--cw-blue-soft)]"
                                     @click="resumeConversation(c.id)"
                                 >
                                     <div class="truncate">{{ c.title ?? '（未有標題）' }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-[#8b90a0]">{{ c.status }}</div>
+                                    <div style="color: var(--cw-muted); font-size: 10px;">{{ c.status }}</div>
                                 </button>
                             </div>
                         </div>
 
-                        <div v-if="activeConversation.messages.length === 0 && resumeQuery === null" class="text-center text-sm text-gray-500 dark:text-[#8b90a0]">
+                        <div v-if="activeConversation.messages.length === 0 && resumeQuery === null" class="text-center text-sm" style="color: var(--cw-muted);">
                             開始打字同 coreAgent 傾偈啦
                         </div>
                     </div>
 
-                    <form @submit.prevent="sendMessage" class="flex items-end gap-2 border-t border-gray-200 p-3 dark:border-[#2a2f3d]">
-                        <textarea
-                            v-model="messageForm.content"
-                            @keydown="onInputKeydown"
-                            rows="2"
-                            placeholder="打字…（Enter 送出，Shift+Enter 換行。試下 /resume 搵返舊對話）"
-                            class="flex-1 resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#d97757] focus:ring-[#d97757] dark:border-[#2a2f3d] dark:bg-[#0d0f14] dark:text-[#e6e8ef] dark:placeholder:text-[#8b90a0]"
-                        ></textarea>
-                        <button
-                            type="submit"
-                            :disabled="messageForm.processing || activeConversation.status === 'processing'"
-                            class="rounded-md border border-[#d97757] bg-[#d97757] px-4 py-2 text-sm font-semibold text-[#1a1a1a] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            送出
-                        </button>
+                    <form @submit.prevent="sendMessage" class="p-4">
+                        <div class="task-composer">
+                            <textarea
+                                v-model="messageForm.content"
+                                @keydown="onInputKeydown"
+                                rows="2"
+                                placeholder="打字…（Enter 送出，Shift+Enter 換行。試下 /resume 搵返舊對話）"
+                            ></textarea>
+                            <div class="composer-footer">
+                                <span></span>
+                                <button
+                                    type="submit"
+                                    :disabled="messageForm.processing || activeConversation.status === 'processing'"
+                                    class="app-button send-button"
+                                    aria-label="送出"
+                                >
+                                    <svg width="15" height="15" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4 20-7Z" /></svg>
+                                </button>
+                            </div>
+                        </div>
                     </form>
                 </template>
 
-                <div v-else class="flex flex-1 items-center justify-center text-sm text-gray-500 dark:text-[#8b90a0]">
+                <div v-else class="flex flex-1 items-center justify-center text-sm" style="color: var(--cw-muted);">
                     揀一個對話，或者撳「+ New chat」開始
                 </div>
             </section>
 
-            <!-- Right: workspace — finished results (videos) and referenced docs
+            <!-- Workspace — finished results (videos) and referenced docs
                  (Document Copilot cases the agent looked up), pulled out of the
                  chat log so they don't get buried under conversation turns. -->
             <aside
                 v-if="activeConversation"
-                class="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-gray-200 bg-gray-50 dark:border-[#2a2f3d] dark:bg-[#161923] xl:flex"
+                class="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l p-3 xl:flex"
+                style="border-color: var(--cw-border); background: var(--cw-sidebar);"
             >
-                <div class="border-b border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 dark:border-[#2a2f3d] dark:text-[#8b90a0]">
+                <div style="font-size: 10px; font-weight: 800; color: var(--cw-muted); text-transform: uppercase; letter-spacing: .06em;">
                     Workspace
                 </div>
 
-                <div v-if="workspaceItems.length === 0" class="p-3 text-sm text-gray-500 dark:text-[#8b90a0]">
+                <div v-if="workspaceItems.length === 0" class="text-sm" style="color: var(--cw-muted);">
                     未有結果 — agent 完成任務之後，靚嘅結果同文件會出現喺呢度。
                 </div>
 
-                <div class="flex-1 space-y-3 p-3">
-                    <div
-                        v-for="item in workspaceItems"
-                        :key="item.key"
-                        class="rounded-md border border-gray-200 bg-white p-3 text-sm dark:border-[#2a2f3d] dark:bg-[#1c2130]"
-                    >
-                        <template v-if="item.type === 'video'">
-                            <div class="mb-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-[#8b90a0]">
-                                <span>🎬 {{ item.data.provider }}</span>
-                                <span>{{ new Date(item.data.created_at).toLocaleString() }}</span>
-                            </div>
-                            <p class="mb-2 line-clamp-2 text-gray-900 dark:text-[#e6e8ef]">{{ item.data.prompt }}</p>
-                            <video :src="item.data.output_url" controls class="w-full rounded-md" style="max-height: 180px"></video>
-                            <a
-                                :href="item.data.output_url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="mt-2 inline-block text-xs text-[#d97757] hover:underline"
-                            >
-                                下載 / 開新分頁 →
-                            </a>
-                        </template>
+                <div v-for="item in workspaceItems" :key="item.key" class="rail-card">
+                    <template v-if="item.type === 'video'">
+                        <header>
+                            <span>🎬 {{ item.data.provider }}</span>
+                            <span style="color: var(--cw-muted); font-weight: 500;">{{ new Date(item.data.created_at).toLocaleString() }}</span>
+                        </header>
+                        <p class="mb-2 line-clamp-2" style="font-size: 11px;">{{ item.data.prompt }}</p>
+                        <video :src="item.data.output_url" controls class="w-full rounded-md" style="max-height: 180px"></video>
+                        <a :href="item.data.output_url" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block" style="font-size: 10px; color: var(--cw-orange); font-weight: 700;">
+                            下載 / 開新分頁 →
+                        </a>
+                    </template>
 
-                        <template v-else-if="item.type === 'case'">
-                            <div class="mb-1.5 flex items-center justify-between text-xs text-gray-500 dark:text-[#8b90a0]">
-                                <span>📄 {{ item.data.vertical }}</span>
-                                <span>{{ item.data.status }}</span>
-                            </div>
-                            <p class="mb-1 font-medium text-gray-900 dark:text-[#e6e8ef]">{{ item.data.reference ?? `Case #${item.data.id}` }}</p>
-                            <p v-if="item.data.summary" class="mb-2 line-clamp-2 text-xs text-gray-600 dark:text-[#8b90a0]">{{ item.data.summary }}</p>
-                            <p v-if="unresolvedCount(item.data) > 0" class="mb-2 text-xs text-amber-600 dark:text-amber-400">
-                                ⚠ {{ unresolvedCount(item.data) }} 個未解決嘅 finding
-                            </p>
-                            <Link :href="route('cases.show', item.data.id)" class="text-xs text-[#d97757] hover:underline">
-                                睇詳情 →
-                            </Link>
-                        </template>
-                    </div>
+                    <template v-else-if="item.type === 'case'">
+                        <header>
+                            <span>📄 {{ item.data.vertical }}</span>
+                            <span style="color: var(--cw-muted); font-weight: 500;">{{ item.data.status }}</span>
+                        </header>
+                        <p class="mb-1" style="font-weight: 700; font-size: 11px;">{{ item.data.reference ?? `Case #${item.data.id}` }}</p>
+                        <p v-if="item.data.summary" class="mb-2 line-clamp-2" style="font-size: 10px; color: var(--cw-muted);">{{ item.data.summary }}</p>
+                        <p v-if="unresolvedCount(item.data) > 0" class="mb-2" style="font-size: 10px; color: #a15b16;">
+                            ⚠ {{ unresolvedCount(item.data) }} 個未解決嘅 finding
+                        </p>
+                        <Link :href="route('cases.show', item.data.id)" style="font-size: 10px; color: var(--cw-blue-strong); font-weight: 700;">
+                            睇詳情 →
+                        </Link>
+                    </template>
                 </div>
             </aside>
         </div>

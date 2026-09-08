@@ -33,7 +33,7 @@ const severityColor = {
                 <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                     Case #{{ props.case.id }} — {{ props.case.vertical }}
                 </h2>
-                <Link :href="route('cases.index')" class="text-sm text-indigo-600 hover:underline">← 返去列表</Link>
+                <Link :href="route('cases.index')" class="text-sm hover:underline" style="color: var(--cw-blue-strong);">← 返去列表</Link>
             </div>
         </template>
 

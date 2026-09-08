@@ -1,3 +1,158 @@
+/*
+ * COREWORD — Editorial Operations Desk.
+ * Ported from C:\Coreword\CoreAI (client/src/index.css) — the reference design
+ * for the whole COREWORD product family. Paper-white surfaces, one signal blue
+ * for navigation/action, orange reserved for creation and WhatsApp-related
+ * moments. Only the classes coreAgent's actual pages use are ported (Chat,
+ * Cases, auth) — CoreAI's Projects/Integrations/Templates/Scheduled surfaces
+ * don't exist here, so their CSS wasn't copied over.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    --cw-blue: #2f66db;
+    --cw-blue-strong: #174fbf;
+    --cw-navy: #12233f;
+    --cw-blue-soft: #eaf1ff;
+    --cw-orange: #f28c28;
+    --cw-orange-soft: #fff1e4;
+    --cw-green: #22a06b;
+    --cw-green-soft: #e5f7ee;
+    --cw-ink: #172033;
+    --cw-muted: #667085;
+    --cw-border: #dde5f0;
+    --cw-surface: #ffffff;
+    --cw-cloud: #f7f9fc;
+    --cw-sidebar: #f8fafd;
+    --radius: 14px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Dark mode: same signal colours, navy-toned surfaces instead of paper white.
+   CoreAI's reference design is light-only; these values keep the existing
+   theme.js toggle (darkMode:'class') working with a coherent dark palette
+   rather than dropping dark mode entirely. */
+.dark {
+    --cw-navy: #eef2fb;
+    --cw-blue-soft: rgba(47, 102, 219, 0.16);
+    --cw-orange-soft: rgba(242, 140, 40, 0.16);
+    --cw-green-soft: rgba(34, 160, 107, 0.16);
+    --cw-ink: #e6e8ef;
+    --cw-muted: #8b93a8;
+    --cw-border: #262b3a;
+    --cw-surface: #161923;
+    --cw-cloud: #0f1115;
+    --cw-sidebar: #12151f;
+}
+
+.coreword-app { min-height: 100vh; display: grid; grid-template-columns: 252px minmax(0, 1fr); background: var(--cw-cloud); }
+.sidebar { position: sticky; top: 0; z-index: 20; width: 252px; height: 100vh; display: flex; flex-direction: column; padding: 24px 14px 16px; background: var(--cw-sidebar); border-right: 1px solid var(--cw-border); overflow-y: auto; }
+.app-main { min-width: 0; grid-column: 2; }
+.app-topbar { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 28px; background: color-mix(in srgb, var(--cw-surface) 88%, transparent); border-bottom: 1px solid var(--cw-border); backdrop-filter: blur(12px); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.brand { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 800; letter-spacing: -.04em; color: var(--cw-navy); }
+.brand-mark { width: 22px; height: 22px; color: var(--cw-blue); filter: drop-shadow(0 3px 5px rgba(47,102,219,.15)); }
+.sidebar-header { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 17px; margin-bottom: 16px; border-bottom: 1px solid var(--cw-border); }
+.sidebar-header::after { position: absolute; bottom: -1px; left: 8px; width: 52px; height: 2px; content: ""; background: var(--cw-blue); border-radius: 99px; }
+
+.new-agent-button { width: 100%; margin-bottom: 18px; }
+.side-nav { display: grid; gap: 3px; }
+.side-nav a { position: relative; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; color: #5f6d82; background: transparent; text-align: left; font-weight: 600; font-size: .8125rem; border-radius: 10px; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
+.dark .side-nav a { color: #9aa5bd; }
+.side-nav a:hover { color: var(--cw-blue-strong); background: var(--cw-blue-soft); }
+.side-nav a.active { color: var(--cw-blue-strong); background: var(--cw-blue-soft); box-shadow: inset 3px 0 0 var(--cw-blue); }
+
+.recent-chats { margin-top: 24px; padding: 0 5px; flex: 1; min-height: 0; overflow-y: auto; }
+.recent-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 5px 8px; color: #98a2b3; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.recent-chats a { position: relative; display: block; min-height: 40px; padding: 6px 8px; margin-bottom: 2px; overflow: hidden; color: #5f6d82; text-decoration: none; border-radius: 9px; transition: background 150ms var(--ease-out); }
+.dark .recent-chats a { color: #9aa5bd; }
+.recent-chats a:hover { background: var(--cw-blue-soft); }
+.recent-chats a.active { background: var(--cw-blue-soft); box-shadow: inset 3px 0 0 var(--cw-blue); }
+.recent-chats .title { display: block; overflow: hidden; color: var(--cw-ink); font-size: 11px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.recent-chats .status-row { display: flex; align-items: center; gap: 5px; margin-top: 2px; font-size: 9px; color: #98a2b3; }
+.recent-chats .status-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--cw-green); }
+.recent-chats .status-dot.processing { background: #f2b028; }
+.recent-chats-empty { padding: 8px; color: #98a2b3; font-size: 10px; }
+
+.sidebar-bottom { display: grid; gap: 8px; margin-top: auto; padding-top: 12px; }
+.profile-button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 5px; color: var(--cw-ink); text-align: left; background: transparent; border: 0; border-radius: 9px; }
+.profile-button:hover { background: color-mix(in srgb, var(--cw-blue-soft) 60%, transparent); }
+.profile-button span { display: grid; flex: 1; min-width: 0; }
+.profile-button strong { overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+.profile-button small { overflow: hidden; color: var(--cw-muted); font-size: 9px; white-space: nowrap; text-overflow: ellipsis; }
+.avatar { display: grid; place-items: center; flex: none; width: 30px; height: 30px; color: white; background: linear-gradient(145deg, #2f66db, #12233f); border: 2px solid var(--cw-surface); border-radius: 50%; font-size: 10px; font-weight: 800; box-shadow: 0 2px 6px rgba(18,35,63,.18); }
+.avatar-small { width: 24px; height: 24px; font-size: 8px; }
+
+.app-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid transparent; border-radius: 10px; font-size: 12px; font-weight: 700; transition: background 160ms var(--ease-out), color 160ms var(--ease-out), box-shadow 160ms var(--ease-out); }
+.app-button:disabled { cursor: not-allowed; opacity: .55; }
+.button-primary { color: white; background: var(--cw-blue); box-shadow: 0 5px 12px rgba(47,102,219,.2); }
+.button-primary:hover:not(:disabled) { background: var(--cw-blue-strong); }
+.button-secondary { color: #42526a; background: var(--cw-surface); border-color: var(--cw-border); }
+.dark .button-secondary { color: #cbd3e6; }
+.button-secondary:hover:not(:disabled) { color: var(--cw-blue-strong); border-color: #bdcff8; }
+.button-ghost { color: #667085; background: transparent; }
+.dark .button-ghost { color: #9aa5bd; }
+.button-ghost:hover:not(:disabled) { color: var(--cw-blue-strong); background: var(--cw-blue-soft); }
+.button-orange { color: #542a05; background: #ffb463; box-shadow: 0 5px 12px rgba(242,140,40,.17); }
+.button-orange:hover:not(:disabled) { color: white; background: var(--cw-orange); }
+.icon-button { display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; color: #667085; background: var(--cw-surface); border: 1px solid var(--cw-border); border-radius: 9px; transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
+.dark .icon-button { color: #9aa5bd; }
+.icon-button:hover { color: var(--cw-blue-strong); background: var(--cw-blue-soft); }
+
+.input-shell { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 11px; color: #8d9aad; background: var(--cw-surface); border: 1px solid var(--cw-border); border-radius: 9px; transition: border 160ms var(--ease-out), box-shadow 160ms var(--ease-out); }
+.input-shell:focus-within { border-color: #b9caf2; box-shadow: 0 0 0 3px rgba(47,102,219,.09); }
+.input-shell input, .input-shell select { min-width: 0; flex: 1; color: var(--cw-ink); background: transparent; border: 0; outline: none; font-size: 11px; }
+
+/* Task composer — the chat input. Same shell CoreAI uses for its home task
+   box, reused here for turn-by-turn chat since coreAgent's actual product is
+   live conversation rather than one-shot task submission. */
+.task-composer { position: relative; padding: 12px 14px 10px; background: var(--cw-surface); border: 1px solid var(--cw-border); border-radius: 16px; box-shadow: 0 16px 35px rgba(18,35,63,.07), 0 2px 6px rgba(18,35,63,.03); transition: border 180ms var(--ease-out), box-shadow 180ms var(--ease-out); }
+.dark .task-composer { box-shadow: none; }
+.task-composer::before { position: absolute; top: -1px; left: 22px; width: 52px; height: 3px; content: ""; background: linear-gradient(90deg, var(--cw-blue) 0 78%, var(--cw-orange) 78%); border-radius: 0 0 99px 99px; }
+.task-composer:focus-within { border-color: #b5caf8; box-shadow: 0 17px 36px rgba(47,102,219,.12), 0 2px 6px rgba(18,35,63,.03); }
+.task-composer textarea { display: block; width: 100%; min-height: 44px; resize: none; color: var(--cw-ink); background: transparent; border: 0; outline: none; font-size: .8125rem; line-height: 1.55; font-weight: 500; }
+.task-composer textarea::placeholder { color: #a4adbc; }
+.composer-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--cw-border); }
+.model-select { border: 0 !important; background: transparent !important; padding: 0 6px !important; font-size: 10px !important; font-weight: 800 !important; color: var(--cw-muted); }
+.send-button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0 !important; color: white !important; background: var(--cw-blue) !important; border-radius: 50% !important; min-height: 0 !important; }
+.send-button:hover:not(:disabled) { background: var(--cw-blue-strong) !important; }
+
+.status-pill { display: inline-flex; align-items: center; gap: 5px; min-height: 21px; padding: 0 8px; font-size: 9px; font-weight: 800; border-radius: 99px; }
+.status-live, .status-idle { color: #147a50; background: var(--cw-green-soft); }
+.status-processing { color: #a15b16; background: var(--cw-orange-soft); }
+
+/* Chat surface — message bubbles, tool trace, workspace rail. Not in CoreAI's
+   original file (its reference design has no literal chat transcript) but
+   built from the same tokens/radius/type-scale so it reads as one system. */
+.chat-scroll { background: var(--cw-cloud); }
+.chat-bubble { max-width: 34rem; border-radius: var(--radius); padding: 10px 14px; font-size: .8125rem; line-height: 1.6; color: var(--cw-ink); }
+.chat-bubble-user { background: var(--cw-blue-soft); }
+.chat-bubble-assistant { background: var(--cw-surface); border: 1px solid var(--cw-border); }
+.chat-provider-tag { margin-top: 6px; font-size: 10px; font-weight: 700; color: var(--cw-orange); }
+.tool-trace summary { cursor: pointer; color: var(--cw-muted); font-size: 10px; }
+.tool-trace summary:hover { color: var(--cw-blue-strong); }
+.rail-card { padding: 13px; background: var(--cw-surface); border: 1px solid var(--cw-border); border-radius: 12px; }
+.rail-card header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.rail-card header span { display: inline-flex; align-items: center; gap: 5px; color: var(--cw-navy); font-size: 10px; font-weight: 800; }
+
+/* Mobile: sidebar becomes an off-canvas drawer, matching CoreAI's own breakpoint. */
+.mobile-menu { display: none; }
+.sidebar-dim { display: none; }
+@media (max-width: 920px) {
+    .coreword-app { display: block; }
+    .app-main { width: 100%; }
+    .sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-103%); box-shadow: 12px 0 35px rgba(18,35,63,.14); transition: transform 230ms var(--ease-out); }
+    .sidebar.mobile-open { transform: translateX(0); }
+    .mobile-menu { display: grid; place-items: center; width: 34px; height: 34px; color: var(--cw-blue-strong); background: var(--cw-blue-soft); border: 0; border-radius: 9px; }
+    .sidebar-dim { position: fixed; z-index: 19; inset: 0; background: rgba(18,35,63,.25); opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-out); }
+    .sidebar-dim.visible { display: block; opacity: 1; pointer-events: auto; }
+}
+
+/* Typography — one product voice, Manrope everywhere except the rare serif accent. */
+body { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; letter-spacing: -.012em; background: var(--cw-cloud); color: var(--cw-ink); }
+.font-serif-accent { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-weight: 400; }

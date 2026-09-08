@@ -101,7 +101,7 @@ function submit() {
                                 <td class="px-4 py-2 text-sm text-gray-900 dark:text-gray-300">{{ c.status }}</td>
                                 <td class="px-4 py-2 text-sm text-gray-900 dark:text-gray-300">{{ c.documents_count }}</td>
                                 <td class="px-4 py-2 text-right text-sm">
-                                    <Link :href="route('cases.show', c.id)" class="text-indigo-600 hover:underline">睇結果</Link>
+                                    <Link :href="route('cases.show', c.id)" style="color: var(--cw-blue-strong);" class="hover:underline">睇結果</Link>
                                 </td>
                             </tr>
                             <tr v-if="cases.length === 0">
