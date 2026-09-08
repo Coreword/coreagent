@@ -73,10 +73,6 @@ function onInputKeydown(event) {
     }
 }
 
-function newConversation() {
-    router.post(route('chat.store'));
-}
-
 function setProvider(event) {
     router.patch(route('chat.update', props.activeConversation.id), {
         provider: event.target.value || null,
@@ -174,6 +170,10 @@ const providerLabels = {
         </template>
 
         <template #topbar-right>
+            <Link :href="route('home')" class="back-button" style="margin-right: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                Home
+            </Link>
             <label v-if="activeConversation" class="input-shell" style="min-height: 30px; padding-inline: 8px;">
                 <select :value="activeConversation.provider ?? ''" @change="setProvider" class="model-select">
                     <option value="">Auto</option>
@@ -183,26 +183,6 @@ const providerLabels = {
             <span v-if="activeConversation" class="status-pill" :class="activeConversation.status === 'processing' ? 'status-processing' : 'status-idle'">
                 {{ activeConversation.status === 'processing' ? '處理緊…' : '待命' }}
             </span>
-        </template>
-
-        <!-- Sidebar's "Recent chats" region (see AuthenticatedLayout.vue) — the
-             conversation list lives here instead of a second aside, so
-             coreAgent has one nav column like CoreAI's reference design. -->
-        <template #recent-chats>
-            <button @click="newConversation" class="app-button button-primary new-agent-button">+ New chat</button>
-            <Link
-                v-for="c in conversations"
-                :key="c.id"
-                :href="route('chat.show', c.id)"
-                :class="{ active: activeConversation?.id === c.id }"
-            >
-                <span class="title">{{ c.title ?? '（未有標題）' }}</span>
-                <span class="status-row">
-                    <span class="status-dot" :class="{ processing: c.status === 'processing' }"></span>
-                    {{ c.status }}
-                </span>
-            </Link>
-            <div v-if="conversations.length === 0" class="recent-chats-empty">未有對話</div>
         </template>
 
         <div class="mx-auto flex h-[calc(100vh-4rem)] max-w-[100rem] gap-0 overflow-hidden">

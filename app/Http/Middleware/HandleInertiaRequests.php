@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CaseRecord;
+use App\Models\Conversation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -34,6 +36,21 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // The sidebar (AuthenticatedLayout.vue) renders on every
+            // authenticated page — Home, Projects, Scheduled, etc. — not
+            // just /chat, so its "Recent chats" and "Projects" tree data is
+            // shared globally rather than threaded through every controller.
+            // Closures so guest pages (login/register) skip the queries.
+            'sidebar' => fn () => $request->user() ? [
+                'recentChats' => Conversation::where('user_id', $request->user()->id)
+                    ->where('channel', 'web')
+                    ->latest('updated_at')
+                    ->limit(8)
+                    ->get(['id', 'title', 'status']),
+                'recentCases' => CaseRecord::latest('created_at')
+                    ->limit(6)
+                    ->get(['id', 'vertical', 'reference']),
+            ] : null,
         ];
     }
 }

@@ -47,6 +47,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('chat.index', absolute: false));
+        return redirect(route('home', absolute: false));
     }
 }
