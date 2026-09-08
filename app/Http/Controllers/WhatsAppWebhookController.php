@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\RunAgentJob;
+use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\WhatsApp\WhatsAppConversationResolver;
+use App\Services\WhatsApp\WhatsAppMediaTranscriber;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -42,7 +45,7 @@ class WhatsAppWebhookController extends Controller
      * web chat uses. The actual LLM call and the WhatsApp reply both happen
      * off-request (see SendWhatsAppReplyJob, fired by MessageObserver).
      */
-    public function receive(Request $request, WhatsAppConversationResolver $resolver): Response
+    public function receive(Request $request, WhatsAppConversationResolver $resolver, WhatsAppMediaTranscriber $transcriber): Response
     {
         if (! $this->hasValidSignature($request)) {
             Log::warning('[WhatsAppWebhook] invalid X-Hub-Signature-256, dropping payload');
@@ -55,7 +58,7 @@ class WhatsAppWebhookController extends Controller
         foreach ($entries as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
                 foreach ($change['value']['messages'] ?? [] as $waMessage) {
-                    $this->handleInboundMessage($waMessage, $resolver);
+                    $this->handleInboundMessage($waMessage, $resolver, $transcriber);
                 }
                 // change['value']['statuses'] (sent/delivered/read receipts) is
                 // deliberately ignored — nothing in coreAgent tracks delivery state.
@@ -67,7 +70,7 @@ class WhatsAppWebhookController extends Controller
         return response('', 200);
     }
 
-    protected function handleInboundMessage(array $waMessage, WhatsAppConversationResolver $resolver): void
+    protected function handleInboundMessage(array $waMessage, WhatsAppConversationResolver $resolver, WhatsAppMediaTranscriber $transcriber): void
     {
         $waMessageId = $waMessage['id'] ?? null;
         $from = $waMessage['from'] ?? null;
@@ -82,18 +85,33 @@ class WhatsAppWebhookController extends Controller
             return;
         }
 
+        $conversation = $resolver->resolve($from);
+        $type = $waMessage['type'] ?? null;
         $text = $waMessage['text']['body'] ?? null;
 
-        $conversation = $resolver->resolve($from);
+        if (! $text && $type === 'audio' && isset($waMessage['audio']['id'])) {
+            $text = $this->transcribeVoiceNote($waMessage['audio']['id'], $conversation, $transcriber);
+
+            // A failed/unconfigured transcription already wrote its own
+            // explanatory reply inside transcribeVoiceNote() — nothing left
+            // to run through the agent this turn.
+            if ($text === null) {
+                return;
+            }
+
+            // Marked so the transcript reads as voice-sourced everywhere it's
+            // shown — the web workspace view included, not just WhatsApp.
+            $text = "🎤 {$text}";
+        }
 
         if (! $text) {
-            // Non-text (image/audio/document/location/...). Acknowledging with
-            // a plain reply keeps the contact from wondering if the bot is
-            // dead, without building media ingestion this pass.
+            // Anything else non-text (image/document/location/...). Acknowledging
+            // with a plain reply keeps the contact from wondering if the bot is
+            // dead, without building media ingestion for every type this pass.
             Message::create([
                 'conversation_id' => $conversation->id,
                 'role' => 'assistant',
-                'content' => '而家淨係支援文字消息，麻煩打字俾我 🙏',
+                'content' => '而家淨係支援文字同語音消息，麻煩打字或者留言俾我 🙏',
                 'wa_message_id' => null,
             ]);
 
@@ -110,6 +128,38 @@ class WhatsAppWebhookController extends Controller
         $conversation->update(['status' => 'processing']);
 
         RunAgentJob::dispatch($conversation, $text);
+    }
+
+    /**
+     * @return ?string the transcribed text, or null if a reply was already
+     *                 sent explaining why (not configured, or transcription
+     *                 failed) and there's nothing further to do this turn.
+     */
+    protected function transcribeVoiceNote(string $mediaId, Conversation $conversation, WhatsAppMediaTranscriber $transcriber): ?string
+    {
+        if (! $transcriber->isConfigured()) {
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'role' => 'assistant',
+                'content' => '而家聽唔到語音消息（未設定語音轉文字），麻煩打字俾我 🙏',
+            ]);
+
+            return null;
+        }
+
+        try {
+            return $transcriber->transcribe($mediaId);
+        } catch (Throwable $e) {
+            Log::warning('[WhatsAppWebhook] voice transcription failed: '.$e->getMessage());
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'role' => 'assistant',
+                'content' => '聽唔清楚呢段語音消息，可以打字俾我，或者再send多次？',
+            ]);
+
+            return null;
+        }
     }
 
     /**

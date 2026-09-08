@@ -97,15 +97,31 @@ number:
 3. Update `WHATSAPP_PHONE_NUMBER_ID` to the new number's id. Nothing else in
    the code changes.
 
+## Voice notes
+
+Text and voice notes are both handled inbound. A voice note is downloaded
+from the Cloud API and transcribed with OpenAI's Whisper (see
+`App\Services\WhatsApp\WhatsAppMediaTranscriber`), then run through the exact
+same agent as typed text — the transcript is prefixed with 🎤 so it reads as
+voice-sourced in the workspace view too.
+
+This needs `OPENAI_API_KEY` set (config/providers.php's `openai.transcribe_model`,
+default `whisper-1`) — no other configured provider (DeepSeek/Claude/Qwen)
+does speech-to-text. Until that key is set, a voice note gets a reply saying
+transcription isn't configured, rather than silently failing.
+
 ## What's NOT built yet
 
-- **Only plain text messages** are handled inbound. Images/audio/documents/
-  location get a static "text only for now" reply — see
-  `WhatsAppWebhookController::handleInboundMessage()`. Extending this to
-  route media into the existing Document Copilot pipeline is a reasonable
-  next step but wasn't in scope here.
-- **Only text replies** are sent outbound (no images, buttons, or WhatsApp's
-  interactive list/reply-button messages).
+- **Images, documents, and location** still get a static "text or voice only
+  for now" reply — see `WhatsAppWebhookController::handleInboundMessage()`.
+  Routing images/documents into the existing Document Copilot pipeline is a
+  reasonable next step but wasn't in scope here.
+- **Replies are always text, never voice** — even when the inbound message
+  was a voice note, the agent's answer comes back as a WhatsApp text message,
+  not a synthesized voice note. Two-way voice (text-to-speech + uploading the
+  result as a WhatsApp audio message) is a natural follow-up, not built here.
+- **Only text replies** are sent outbound otherwise too (no images, buttons,
+  or WhatsApp's interactive list/reply-button messages).
 - **No opt-out/STOP handling.** Worth adding before sending to real customers
   at any volume — Meta can suspend a number for complaints if there's no way
   to unsubscribe.

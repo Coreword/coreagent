@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\RunAgentJob;
 use App\Jobs\SendWhatsAppReplyJob;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class WhatsAppWebhookTest extends TestCase
@@ -131,6 +133,102 @@ class WhatsAppWebhookTest extends TestCase
         ]);
 
         Bus::assertNotDispatched(SendWhatsAppReplyJob::class);
+    }
+
+    public function test_voice_note_is_transcribed_and_dispatched_to_the_agent(): void
+    {
+        Bus::fake([RunAgentJob::class]);
+        config(['services.whatsapp.access_token' => 'test-wa-token']);
+        config(['providers.openai.api_key' => 'test-openai-key']);
+
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'url' => 'https://lookaside.fbsbx.com/whatsapp_business/attachments/fake-media',
+                'mime_type' => 'audio/ogg; codecs=opus',
+            ], 200),
+            'lookaside.fbsbx.com/*' => Http::response('fake-ogg-bytes', 200),
+            'api.openai.com/v1/audio/transcriptions' => Http::response(['text' => '幾多個 case？'], 200),
+        ]);
+
+        $payload = $this->sampleAudioPayload('+85291234567', 'wamid.VOICE1', 'media-id-123');
+
+        $response = $this->postJson('/webhooks/whatsapp', $payload, [
+            'X-Hub-Signature-256' => $this->signaturePrefix().$this->sign($payload),
+        ]);
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('messages', [
+            'wa_message_id' => 'wamid.VOICE1',
+            'role' => 'user',
+            'content' => '🎤 幾多個 case？',
+        ]);
+
+        Bus::assertDispatchedTimes(RunAgentJob::class, 1);
+    }
+
+    public function test_voice_note_without_transcription_configured_gets_a_fallback_reply(): void
+    {
+        // Both faked: the fallback assistant Message this test asserts on
+        // fires MessageObserver -> SendWhatsAppReplyJob same as any other
+        // WhatsApp reply — real send would throw here since only
+        // access_token/openai key are set per test, not phone_number_id.
+        Bus::fake([RunAgentJob::class, SendWhatsAppReplyJob::class]);
+        // Default test config: no WHATSAPP_ACCESS_TOKEN, no OPENAI_API_KEY.
+
+        $payload = $this->sampleAudioPayload('+85291234567', 'wamid.VOICE2', 'media-id-456');
+
+        $this->postJson('/webhooks/whatsapp', $payload, [
+            'X-Hub-Signature-256' => $this->signaturePrefix().$this->sign($payload),
+        ])->assertOk();
+
+        $this->assertDatabaseHas('messages', [
+            'role' => 'assistant',
+            'content' => '而家聽唔到語音消息（未設定語音轉文字），麻煩打字俾我 🙏',
+        ]);
+        $this->assertDatabaseMissing('messages', ['wa_message_id' => 'wamid.VOICE2']);
+        Bus::assertNotDispatched(RunAgentJob::class);
+    }
+
+    public function test_voice_note_transcription_failure_gets_a_fallback_reply(): void
+    {
+        Bus::fake([RunAgentJob::class, SendWhatsAppReplyJob::class]);
+        config(['services.whatsapp.access_token' => 'test-wa-token']);
+        config(['providers.openai.api_key' => 'test-openai-key']);
+
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([], 500),
+        ]);
+
+        $payload = $this->sampleAudioPayload('+85291234567', 'wamid.VOICE3', 'media-id-789');
+
+        $this->postJson('/webhooks/whatsapp', $payload, [
+            'X-Hub-Signature-256' => $this->signaturePrefix().$this->sign($payload),
+        ])->assertOk();
+
+        $this->assertDatabaseHas('messages', [
+            'role' => 'assistant',
+            'content' => '聽唔清楚呢段語音消息，可以打字俾我，或者再send多次？',
+        ]);
+        Bus::assertNotDispatched(RunAgentJob::class);
+    }
+
+    protected function sampleAudioPayload(string $from, string $waMessageId, string $mediaId): array
+    {
+        return [
+            'entry' => [[
+                'changes' => [[
+                    'value' => [
+                        'messages' => [[
+                            'id' => $waMessageId,
+                            'from' => $from,
+                            'type' => 'audio',
+                            'audio' => ['id' => $mediaId, 'mime_type' => 'audio/ogg; codecs=opus'],
+                        ]],
+                    ],
+                ]],
+            ]],
+        ];
     }
 
     protected function samplePayload(string $from, string $waMessageId, string $body): array

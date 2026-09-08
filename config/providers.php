@@ -14,6 +14,13 @@ return [
         'model' => env('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),
         'timeout' => (int) env('OPENAI_TIMEOUT', 30),
         'supports_tools' => true,
+        // Whisper — only used for WhatsApp voice notes (see
+        // WhatsAppMediaTranscriber). Shares OPENAI_API_KEY/OPENAI_BASE_URL
+        // with the chat provider above rather than a separate key: it's the
+        // same OpenAI account either way. DeepSeek/Claude/Qwen have no
+        // speech-to-text endpoint, so this has no fallback chain — a voice
+        // note is transcribed via OpenAI or not at all.
+        'transcribe_model' => env('OPENAI_TRANSCRIBE_MODEL', 'whisper-1'),
     ],
 
     // DeepSeek's API is OpenAI-compatible (same request/response shape, including

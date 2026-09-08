@@ -13,6 +13,7 @@ use App\Services\Llm\AnthropicProvider;
 use App\Services\Llm\OpenAiCompatibleProvider;
 use App\Services\Llm\ProviderRouter;
 use App\Services\WhatsApp\WhatsAppClient;
+use App\Services\WhatsApp\WhatsAppMediaTranscriber;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -43,6 +44,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(WhatsAppClient::class, function () {
             return new WhatsAppClient(config('services.whatsapp'));
+        });
+
+        $this->app->singleton(WhatsAppMediaTranscriber::class, function () {
+            return new WhatsAppMediaTranscriber(config('services.whatsapp'), config('providers.openai'));
         });
     }
 
