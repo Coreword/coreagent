@@ -4,6 +4,7 @@ use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,5 +32,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/chat/{conversation}', [ConversationController::class, 'update'])->name('chat.update');
     Route::post('/chat/{conversation}/messages', [MessageController::class, 'store'])->name('chat.messages.store');
 });
+
+// Meta calls these directly — no 'auth' middleware, and the POST route is
+// excepted from CSRF verification in bootstrap/app.php. Request authenticity
+// is instead the X-Hub-Signature-256 check in WhatsAppWebhookController.
+Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp.verify');
+Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])
+    ->middleware('throttle:120,1')
+    ->name('webhooks.whatsapp.receive');
 
 require __DIR__.'/auth.php';

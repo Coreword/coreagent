@@ -16,7 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        // Meta's webhook POST carries no CSRF token — it's a server-to-server
+        // call authenticated by X-Hub-Signature-256 instead (see
+        // WhatsAppWebhookController::hasValidSignature).
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/whatsapp',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

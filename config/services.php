@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    // WhatsApp Cloud API (Meta). A number without all four of verify_token /
+    // app_secret / access_token / phone_number_id set is treated as unconfigured:
+    // WhatsAppWebhookController::verify() fails the handshake rather than
+    // accepting a webhook it cannot authenticate.
+    'whatsapp' => [
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'graph_base_url' => env('WHATSAPP_GRAPH_BASE_URL', 'https://graph.facebook.com'),
+    ],
+
 ];

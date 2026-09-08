@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Message;
+use App\Observers\MessageObserver;
 use App\Services\Agent\Tools\CheckVideoStatusTool;
 use App\Services\Agent\Tools\GenerateVideoTool;
 use App\Services\Agent\Tools\GetCaseTool;
@@ -10,6 +12,7 @@ use App\Services\Agent\ToolRegistry;
 use App\Services\Llm\AnthropicProvider;
 use App\Services\Llm\OpenAiCompatibleProvider;
 use App\Services\Llm\ProviderRouter;
+use App\Services\WhatsApp\WhatsAppClient;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +40,10 @@ class AppServiceProvider extends ServiceProvider
                 'qwen_lora' => new OpenAiCompatibleProvider('qwen_lora', config('providers.qwen_lora')),
             ]);
         });
+
+        $this->app->singleton(WhatsAppClient::class, function () {
+            return new WhatsAppClient(config('services.whatsapp'));
+        });
     }
 
     /**
@@ -45,5 +52,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        Message::observe(MessageObserver::class);
     }
 }

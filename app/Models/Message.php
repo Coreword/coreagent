@@ -17,6 +17,7 @@ class Message extends Model
         'tool_calls',
         'tool_name',
         'tool_call_id',
+        'wa_message_id',
     ];
 
     protected $casts = [

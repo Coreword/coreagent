@@ -10,6 +10,7 @@ class Conversation extends Model
 {
     protected $fillable = [
         'user_id',
+        'channel',
         'title',
         'provider',
         'status',
