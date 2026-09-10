@@ -1,11 +1,18 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     prefill: { type: String, default: null },
 });
+
+const page = usePage();
+const hasProjects = computed(() => (page.props.sidebar?.recentCases ?? []).length > 0);
+
+function goCreateProject() {
+    router.visit(route('cases.index', { create: 1 }));
+}
 
 const form = useForm({ content: props.prefill ?? '' });
 const selectedChip = ref(null);
@@ -47,6 +54,25 @@ function onKeydown(event) {
         <template #header><span>Your workspace</span></template>
 
         <section class="home-view">
+            <div v-if="!hasProjects" class="onboarding-card">
+                <div class="onboarding-icon">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /><path d="M12 11v5M9.5 13.5h5" /></svg>
+                    <span class="accent-dot"></span>
+                </div>
+                <div class="onboarding-eyebrow">Your first coreAgent project</div>
+                <h2>Start with a clear place for the work.</h2>
+                <p>Projects keep briefs, files, connector permissions, reusable skills, and task history together. Begin with a project, then add context only when it is useful.</p>
+                <button type="button" class="app-button button-primary" @click="goCreateProject">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" /></svg>
+                    Create a project
+                </button>
+                <div class="onboarding-steps">
+                    <span><em>1</em> Name the outcome</span>
+                    <span><em>2</em> Add useful context</span>
+                    <span><em>3</em> Start the first task</span>
+                </div>
+            </div>
+
             <div class="welcome-ribbon"><span class="ribbon-star">✦</span> coreAgent can look up cases, generate video, and answer over WhatsApp</div>
 
             <div class="home-main-grid">

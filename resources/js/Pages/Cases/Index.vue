@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -11,6 +11,12 @@ const props = defineProps({
 const search = ref('');
 const mode = ref('grid');
 const showModal = ref(false);
+
+onMounted(() => {
+    if (new URLSearchParams(window.location.search).get('create') === '1') {
+        showModal.value = true;
+    }
+});
 
 const visibleCases = computed(() =>
     props.cases.filter((c) => {
