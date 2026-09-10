@@ -50,7 +50,7 @@ function newAgent() {
         <aside class="sidebar" :class="{ 'mobile-open': mobileOpen }">
             <div class="sidebar-header">
                 <Link :href="route('home')" class="brand">
-                    <ApplicationLogo class="brand-mark fill-current" />
+                    <ApplicationLogo class="brand-mark" />
                     <span>coreAgent</span>
                 </Link>
             </div>
@@ -111,10 +111,10 @@ function newAgent() {
             </div>
 
             <div class="sidebar-bottom">
-                <button type="button" @click="onToggleTheme" class="icon-button" style="width: 100%; justify-content: flex-start; gap: 8px; padding-inline: 8px;">
+                <button type="button" @click="onToggleTheme" class="theme-toggle-button">
                     <svg v-if="theme === 'dark'" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
                     <svg v-else width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                    <span style="font-size: 11px; font-weight: 700;">{{ theme === 'dark' ? 'Light mode' : 'Dark mode' }}</span>
+                    <span>{{ theme === 'dark' ? 'Light mode' : 'Dark mode' }}</span>
                 </button>
 
                 <a href="https://altostudio.altodock.com" target="_blank" rel="noopener noreferrer" class="invite-card">

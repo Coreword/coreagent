@@ -10,7 +10,7 @@ import { Link } from '@inertiajs/vue3';
     >
         <div class="flex items-center gap-2">
             <Link href="/" class="flex items-center gap-2">
-                <ApplicationLogo class="h-10 w-10 fill-current" style="color: var(--cw-blue);" />
+                <ApplicationLogo class="h-10 w-10" style="color: var(--cw-blue);" />
                 <span style="font-weight: 800; letter-spacing: -.04em; color: var(--cw-navy);">coreAgent</span>
             </Link>
         </div>

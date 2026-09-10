@@ -119,7 +119,7 @@ function onKeydown(event) {
                         </div>
                         <div v-if="selectedChip" class="example-popover" style="position: relative; margin-top: 10px; max-width: 480px; padding: 14px; background: var(--cw-surface); border: 1px solid var(--cw-border); border-radius: 12px;">
                             <p style="margin: 0 0 10px; font-size: 11px; color: var(--cw-muted); line-height: 1.55;">{{ examples[selectedChip] }}</p>
-                            <button type="button" class="text-action" style="color: var(--cw-blue-strong); font-size: 10px; font-weight: 800;" @click="useExample(selectedChip)">Use this task →</button>
+                            <button type="button" class="text-action" style="font-size: 10px;" @click="useExample(selectedChip)">Use this task →</button>
                         </div>
                     </div>
                 </div>
