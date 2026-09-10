@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, router, usePage } from '@inertiajs/vue3';
+import { openLoginModal } from '@/loginModal';
 
 const props = defineProps({
     prefill: { type: String, default: null },
@@ -9,8 +10,25 @@ const props = defineProps({
 
 const page = usePage();
 const hasProjects = computed(() => (page.props.sidebar?.recentCases ?? []).length > 0);
+const isGuest = computed(() => !page.props.auth.user);
+
+// A guest can type a task and hit send, but sending needs a session — stash
+// the draft and prompt login instead of posting; restore it once they're
+// actually authenticated (the login redirect lands back here, page props
+// refreshed, textarea otherwise empty).
+const DRAFT_KEY = 'coreagent_draft';
+onMounted(() => {
+    if (page.props.auth.user) {
+        const draft = sessionStorage.getItem(DRAFT_KEY);
+        if (draft) {
+            form.content = draft;
+            sessionStorage.removeItem(DRAFT_KEY);
+        }
+    }
+});
 
 function goCreateProject() {
+    if (isGuest.value) { openLoginModal(); return; }
     router.visit(route('cases.index', { create: 1 }));
 }
 
@@ -36,6 +54,11 @@ function useExample(chip) {
 
 function submitTask() {
     if (!form.content.trim()) return;
+    if (isGuest.value) {
+        sessionStorage.setItem(DRAFT_KEY, form.content);
+        openLoginModal();
+        return;
+    }
     form.post(route('home.submit'));
 }
 
@@ -64,7 +87,7 @@ function onKeydown(event) {
                 <p>Projects keep briefs, files, connector permissions, reusable skills, and task history together. Begin with a project, then add context only when it is useful.</p>
                 <button type="button" class="app-button button-primary" @click="goCreateProject">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" /></svg>
-                    Create a project
+                    {{ isGuest ? 'Sign in to create a project' : 'Create a project' }}
                 </button>
                 <div class="onboarding-steps">
                     <span><em>1</em> Name the outcome</span>

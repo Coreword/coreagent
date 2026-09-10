@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        // Guests never see a bare /login page — every gated route bounces
+        // back to /home, where AuthenticatedLayout auto-opens the login
+        // modal over the still-visible interface instead.
+        $middleware->redirectGuestsTo(fn () => route('home'));
+
         // Meta's webhook POST carries no CSRF token — it's a server-to-server
         // call authenticated by X-Hub-Signature-256 instead (see
         // WhatsAppWebhookController::hasValidSignature).

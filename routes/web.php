@@ -15,19 +15,24 @@ use Inertia\Inertia;
 // coreAgent's landing surface is the CoreAI-style task composer, not a
 // conversation picker — '/' canonicalises to '/home' so the nav's "Home"
 // link highlights correctly (route().current('home')).
-Route::redirect('/', '/home')->middleware('auth')->name('root');
+Route::redirect('/', '/home')->name('root');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// /home is the one page a guest can actually see: the full sidebar/composer
+// shell renders, but AuthenticatedLayout auto-opens a login modal over it and
+// Home.vue gates every real action (send, New Agent, start cards) behind it.
+// Submitting a task still requires a session — 'home.submit' stays gated.
+Route::get('/home', [HomeController::class, 'index'])->name('home');
+
 Route::middleware('auth')->group(function () {
+    Route::post('/home', [HomeController::class, 'submit'])->name('home.submit');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::get('/home', [HomeController::class, 'index'])->name('home');
-    Route::post('/home', [HomeController::class, 'submit'])->name('home.submit');
 
     // "Projects" in the nav — CoreAI's project entity maps onto coreAgent's
     // real Document Copilot cases. Route names stay cases.* since the

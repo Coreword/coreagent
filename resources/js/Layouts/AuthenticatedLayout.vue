@@ -1,15 +1,25 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import LoginModal from '@/Components/LoginModal.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { currentTheme, toggleTheme } from '@/theme';
+import { showLoginModal, openLoginModal, closeLoginModal } from '@/loginModal';
 
 const page = usePage();
 const mobileOpen = ref(false);
 const theme = ref(currentTheme());
 const projectsOpen = ref(true);
+
+// /home is the only route a guest actually reaches (every other auth-gated
+// route bounces back to it) — the interface renders in full, but a guest
+// sees the login modal over it immediately, and every gated action here or
+// on the page re-opens it via the shared loginModal module.
+onMounted(() => {
+    if (!page.props.auth.user) openLoginModal();
+});
 
 function onToggleTheme() {
     theme.value = toggleTheme();
@@ -123,7 +133,7 @@ function newAgent() {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
                 </a>
 
-                <Dropdown align="left" width="48">
+                <Dropdown v-if="$page.props.auth.user" align="left" width="48">
                     <template #trigger>
                         <button type="button" class="profile-button">
                             <span class="avatar avatar-small">{{ initials($page.props.auth.user.name) }}</span>
@@ -138,8 +148,17 @@ function newAgent() {
                         <DropdownLink :href="route('logout')" method="post" as="button">Log Out</DropdownLink>
                     </template>
                 </Dropdown>
+                <button v-else type="button" class="profile-button" @click="showLoginModal = true">
+                    <span class="avatar avatar-small">?</span>
+                    <span>
+                        <strong>Guest</strong>
+                        <small>Sign in to save work</small>
+                    </span>
+                </button>
             </div>
         </aside>
+
+        <LoginModal :show="showLoginModal" @close="showLoginModal = false" />
 
         <div class="app-main">
             <header class="app-topbar">
