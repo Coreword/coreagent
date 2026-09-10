@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import { openLoginModal } from '@/loginModal';
@@ -11,21 +11,6 @@ const props = defineProps({
 const page = usePage();
 const hasProjects = computed(() => (page.props.sidebar?.recentCases ?? []).length > 0);
 const isGuest = computed(() => !page.props.auth.user);
-
-// A guest can type a task and hit send, but sending needs a session — stash
-// the draft and prompt login instead of posting; restore it once they're
-// actually authenticated (the login redirect lands back here, page props
-// refreshed, textarea otherwise empty).
-const DRAFT_KEY = 'coreagent_draft';
-onMounted(() => {
-    if (page.props.auth.user) {
-        const draft = sessionStorage.getItem(DRAFT_KEY);
-        if (draft) {
-            form.content = draft;
-            sessionStorage.removeItem(DRAFT_KEY);
-        }
-    }
-});
 
 function goCreateProject() {
     if (isGuest.value) { openLoginModal(); return; }
@@ -52,13 +37,16 @@ function useExample(chip) {
     selectedChip.value = null;
 }
 
+// Guests never see the composer (home-main-grid is hidden for them), but the
+// start cards below stay visible as a capability preview — clicking one
+// prompts login instead of silently filling a textarea they can't see.
+function useExampleOrLogin(chip) {
+    if (isGuest.value) { openLoginModal(); return; }
+    useExample(chip);
+}
+
 function submitTask() {
     if (!form.content.trim()) return;
-    if (isGuest.value) {
-        sessionStorage.setItem(DRAFT_KEY, form.content);
-        openLoginModal();
-        return;
-    }
     form.post(route('home.submit'));
 }
 
@@ -98,7 +86,7 @@ function onKeydown(event) {
 
             <div class="welcome-ribbon"><span class="ribbon-star">✦</span> coreAgent can look up cases, generate video, and answer over WhatsApp</div>
 
-            <div class="home-main-grid">
+            <div v-if="!isGuest" class="home-main-grid">
                 <div class="home-copy">
                     <div class="eyebrow">✦ TASK-FIRST AI WORKSPACE</div>
                     <h1>What can <em>coreAgent</em><br>do for you?</h1>
@@ -153,13 +141,13 @@ function onKeydown(event) {
                     <div><span class="eyebrow-text">A FOCUSED START</span><h2>One clear place to begin.</h2></div>
                 </div>
                 <div class="start-cards">
-                    <button type="button" class="start-card" @click="useExample('Look up a case')">
+                    <button type="button" class="start-card" @click="useExampleOrLogin('Look up a case')">
                         <div class="start-card-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" /></svg></div>
                         <span class="label">Look up a case</span>
                         <small>Pull status, documents, and findings for a reference.</small>
                         <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10" /></svg>
                     </button>
-                    <button type="button" class="start-card" @click="useExample('Generate a video')">
+                    <button type="button" class="start-card" @click="useExampleOrLogin('Generate a video')">
                         <div class="start-card-icon orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4Z" /><rect x="2" y="6" width="14" height="12" rx="2" /></svg></div>
                         <span class="label">Generate a video</span>
                         <small>Describe a scene and submit it to the render pipeline.</small>
